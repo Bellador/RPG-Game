@@ -1,6 +1,6 @@
 # Text based Dungeons and Dragons game
-# test git hub
-# --------------ATTRIBUT DEFINITION------------------------------------------------------------------------------------
+
+# --------------ATTRIBUTE DEFINITION------------------------------------------------------------------------------------
 # health: low 250 - 3500 high
 # armour: (armour value regarding health point protection/ dmg mitigation) 0-100
 # weapon: (weapon description) string -> maybe weapon specific attributes
@@ -19,6 +19,7 @@
 import random
 import time
 import turtle
+import tkinter
 
 
 # ------------------------------------------------------------------
@@ -139,6 +140,8 @@ class Draw:  # building of a 2D array (map) with every tile having specific attr
     list_tree = []
     list_grass = []
     list_potions = {}  # stamp_id and print location
+    kill_display_pos = (-320, 180)
+    font_size = 40
 
     @staticmethod
     def tree(pen):
@@ -257,7 +260,7 @@ class Draw:  # building of a 2D array (map) with every tile having specific attr
                 pen.down()
                 cls.potion(pen)
                 del cls.list_potions[key]
-
+            cls.kill_display()
             canvas.update()
             canvas.tracer(t, 0)
 
@@ -314,12 +317,13 @@ class Draw:  # building of a 2D array (map) with every tile having specific attr
 
         pen.ht()
 
+        cls.kill_display()
+
         canvas.update()  # refreshes while tracer (animation turned off) was active
         canvas.tracer(t, 0) # back to original refresh rate
 
     @classmethod
     def encounter(cls, encounter, canvas, original_tracer):
-        font_size = 40
         pen = cls.pen
         hero_startPos = (-300, -197)
         goblin_startPos = (300, -142)
@@ -343,10 +347,10 @@ class Draw:  # building of a 2D array (map) with every tile having specific attr
         # inital encounter drawing
         for flicker in range(5):
             canvas.bgcolor("White")
-            pen.write("ENCOUNTER", font=("Arial", font_size, "normal"))
+            pen.write("ENCOUNTER", font=("Arial", cls.font_size, "normal"))
             time.sleep(0.1)
             canvas.bgcolor("Black")
-            pen.write("ENCOUNTER", font=("Arial", font_size, "normal"))
+            pen.write("ENCOUNTER", font=("Arial", cls.font_size, "normal"))
             time.sleep(0.1)
 
         while encounter == True:
@@ -357,6 +361,14 @@ class Draw:  # building of a 2D array (map) with every tile having specific attr
             time.sleep(2)  # sets frame refresh speed - at least that's the idea
             break
 
+    @classmethod
+    def kill_display(cls):
+        kills = int(object_handler.get_kills())
+        pen = cls.pen
+        pen.up()
+        pen.setpos(cls.kill_display_pos[0], cls.kill_display_pos[1])
+        pen.write("Kills: {}".format(kills), font=("Arial", cls.font_size, "normal"))
+        pen.down()
 
 class Character(turtle.Turtle):  # character as a subclass of Turtle object  mother-class
 
@@ -419,8 +431,15 @@ class Character(turtle.Turtle):  # character as a subclass of Turtle object  mot
         if hit == True and dodge == False:
 
             # determining a critical hit           
+            rand = random.randint(0, 100)
+            print("Random number for crit: {}".format(rand))
+            print("Dmg_prop[0]: {}".format(dmg_prop[0]))
+            print("Dmg_prop[1]: {}".format(dmg_prop[1]))
+            print("Dmg_prop[2]: {}".format(dmg_prop[2]))
+            print("Dmg_prop[3]: {}".format(dmg_prop[3]))
+            print("Dmg_prop[4]: {}".format(dmg_prop[4]))
 
-            if random.randint(0, 100) <= dmg_prop[4]:
+            if rand <= dmg_prop[4]:
                 crit = True
                 print("Narrator: Critical hit!")
             else:
@@ -464,7 +483,8 @@ class Character(turtle.Turtle):  # character as a subclass of Turtle object  mot
                     random.randint(0, len(self.phrases) - 1)])
             else:
                 print("{} received fatal damage!!!".format(self.name))
-            print()
+                object_handler.kill_counter(self.__class__.__name__)
+
         return (hit, dodge, crit, t_dmg, armour_break) # t_dmg = total resulting damage
 
 
@@ -474,8 +494,8 @@ class Knight(Character):
     agility = 15
     charisma = 8
     dmg = 10  # setWeapon defines dmg according to weapon chosen
-    hit_c = 10  # setWeapon defines hit chance according to weapon chosen
-    crit_c = 100  # 5 setWeapon defines critical hit chance according to weapon chosen
+    hit_c = 30  # setWeapon defines hit chance according to weapon chosen
+    crit_c = 30  # 5 setWeapon defines critical hit chance according to weapon chosen
 
     weapons = ("longsword", "shield and sword")
     phrases = ("Deus Vult!", "Come here you infidel!", "Let me bring you justice!", "For the holy land",
@@ -498,14 +518,14 @@ class Knight(Character):
             self.dmg = (500, 750)
             self.agility -= 5
             self.hit_c = 100 #85
-            self.crit_c = 30
+            self.crit_c = 100 #30
 
         elif self.choice == "2":
             self.weapon = "shield and sword"
             self.dmg = (300, 450)
             self.armour += 10
             self.hit_c = 100 #90
-            self.crit_c = 25
+            self.crit_c = 100 #25
         else:
             print("no weapon set")
 
@@ -559,10 +579,21 @@ class object_handler:  # nicht zu instansierende Klasse, keine (self)
     current_heros = []
     current_NPC = []
     current_screens = []
+    total_kills = 0
+    goblin_kills = 0
+    # here add new npc's to distinguish kills
 
-    @staticmethod
-    def get_kills():
-        pass
+    @classmethod
+    def get_kills(cls):
+        return cls.total_kills
+
+    @classmethod
+    def kill_counter(cls, kill_type): #kill_tpye will be class.__name__ of killed object
+        if kill_type == Goblin.__class__.__name__:
+            cls.goblin_kills += 1
+
+        cls.total_kills += 1
+
     @staticmethod
     def get_object_list():
         return (object_handler.current_heros, object_handler.current_NPC, object_handler.current_screens)
@@ -701,7 +732,7 @@ class Move:
 
     @classmethod
     def checkEncounter(cls):
-        encounter_chance = 10
+        encounter_chance = 100
         if random.randint(0, 100) <= encounter_chance:
             cls.encounter = True
             cls.hero_pos_before_enc = object_handler.current_heros[0].position()
@@ -711,6 +742,7 @@ class Move:
         time.sleep(0.25)
         if cls.encounter == False:
             Move.checkBorder(hero)
+            time.sleep(0.1)
             Move.checkPotion(hero)
             Move.checkEncounter()
             Draw.redraw(canvas, cls.encounter)
