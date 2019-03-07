@@ -1,4 +1,4 @@
-# UltraGeil
+# RPG type game
 DaD_Game
 
 This game I develop in my spare time is somewhat a mix between a pokémon encounter game and a RPG.
